@@ -32,7 +32,7 @@ async function verifyToken(req, res, next) {
     try {
       const decodedUser = await admin.auth().verifyIdToken(token);
       req.decodedEmail = decodedUser.email;
-      console.log(req.decodedEmail)
+      // console.log(req.decodedEmail)
     }
     catch{
 
@@ -72,13 +72,13 @@ async function run() {
     //make admin
     app.put('/users/admin', verifyToken, async (req, res) => {
       const user = req.body;
-      console.log('put',req.decodedEmail)
+      // console.log('put',req.decodedEmail)
       const requester = req.decodedEmail;
       if(requester){
         const requesterAccount = await usersCollection.findOne({email: requester})
         if(requesterAccount.role === 'admin'){
           const filter = {email: user.email}
-          console.log(filter)
+          // console.log(filter)
           const updateDoc = { $set: {role: 'admin'}}
           const result = await usersCollection.updateOne(filter, updateDoc)
           res.json(result)
