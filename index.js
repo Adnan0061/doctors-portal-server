@@ -6,10 +6,13 @@ let admin = require("firebase-admin");
 
 require('dotenv').config()
 const { MongoClient } = require('mongodb');
+const ObjectId = require('mongodb').ObjectId;
 const port = process.env.PORT || 5000;
 
 
-// const serviceAccount = require("./doctors-portal-firebase-adminsdk.json");
+
+const stripe = require("stripe")(process.env.STRIPE_SECRET);
+
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 
 admin.initializeApp({
@@ -28,11 +31,9 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 async function verifyToken(req, res, next) {
   if(req.headers?.authorization?.startsWith('Bearer ')){
     const token = req.headers.authorization.split(' ')[1]
-    // console.log(token)
     try {
       const decodedUser = await admin.auth().verifyIdToken(token);
       req.decodedEmail = decodedUser.email;
-      // console.log(req.decodedEmail)
     }
     catch{
 
@@ -40,8 +41,6 @@ async function verifyToken(req, res, next) {
   }
   next();
 }
-
-// console.log(uri)
 
 async function run() {
   try {
@@ -72,13 +71,11 @@ async function run() {
     //make admin
     app.put('/users/admin', verifyToken, async (req, res) => {
       const user = req.body;
-      // console.log('put',req.decodedEmail)
       const requester = req.decodedEmail;
       if(requester){
         const requesterAccount = await usersCollection.findOne({email: requester})
         if(requesterAccount.role === 'admin'){
           const filter = {email: user.email}
-          // console.log(filter)
           const updateDoc = { $set: {role: 'admin'}}
           const result = await usersCollection.updateOne(filter, updateDoc)
           res.json(result)
@@ -87,10 +84,6 @@ async function run() {
           res.status(401).json({message: 'you do not have access to make admin'})
         }
       }
-      // const filter = {email: user.email}
-      // const updateDoc = {$set : {role: 'admin'}}
-      // const result = await usersCollection.updateOne(filter, updateDoc)
-      // res.json(result)
     })
 
     //check if admin
@@ -112,18 +105,54 @@ async function run() {
       res.json(result)
     })
   
+    app.put('/appointments/:id', async (req, res) => {
+      const id = req.params.id;
+      const payment = req.body;
+      const filter = { _id: ObjectId(id)};
+      const updateDoc = {
+        $set : {
+          payment: payment
+        }
+      }
+      const result = await appointmentsCollection.updateOne(filter, updateDoc)
+      res.json(result);
+    })
+
     // Load appoinments to show in dashboard
     app.get('/appointments', verifyToken, async (req, res) => {
       const email = req.query.idemail;
       const date = req.query.date;
-      // const date = new Date(req.query.date).toLocaleDateString();
-      // console.log(date)
-      // console.log(email)
       const query = {idemail : email, date: date}
       const result = await appointmentsCollection.find(query).toArray()
       res.json(result)
-      // console.log(result)
     })
+
+    //grt single 
+    app.get('/appointments/:id', verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const query = {_id : ObjectId(id)}
+      const result = await appointmentsCollection.findOne(query)
+      res.json(result)
+    })
+
+    //stripe payment
+    app.post("/create-payment-intent", async (req, res) => {
+      const paymentInfo = req.body;
+      const amount = paymentInfo.price * 100
+
+      // Create a PaymentIntent with the order amount and currency
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        automatic_payment_methods: {
+          enabled: true,
+        },
+      });
+    
+      res.json({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
   
   }
   finally {
