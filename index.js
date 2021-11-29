@@ -1,18 +1,14 @@
 const express = require('express')
-
 const app = express();
 const cors = require('cors');
 let admin = require("firebase-admin");
-const fileUpload = require("express-fileUpload");
-
 require('dotenv').config()
 const { MongoClient } = require('mongodb');
 const ObjectId = require('mongodb').ObjectId;
-const port = process.env.PORT || 5000;
-
-
-
 const stripe = require("stripe")(process.env.STRIPE_SECRET);
+const fileUpload = require("express-fileUpload");
+
+const port = process.env.PORT || 5000;
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 
@@ -33,6 +29,7 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 async function verifyToken(req, res, next) {
   if(req.headers?.authorization?.startsWith('Bearer ')){
     const token = req.headers.authorization.split(' ')[1]
+    
     try {
       const decodedUser = await admin.auth().verifyIdToken(token);
       req.decodedEmail = decodedUser.email;
