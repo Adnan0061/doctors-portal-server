@@ -67,34 +67,7 @@ async function run() {
       res.json(result)
       }
     })
-
-    //add doctors
-    app.post('/doctors', async (req, res) => {
-      const name = req.body.name
-      const email = req.body.email
-      const mobile = req.body.mobile
-      const pic = req.files.image;
-
-      const picData = pic.data;
-      const encodedPic = picData.toString('base64')
-      const imageBuffer = Buffer.from(encodedPic, 'base64')
-
-      const doctor = {
-        name,
-        email,
-        mobile,
-        image: imageBuffer
-      }
-      const result = await doctorsCollection.insertOne(doctor)
-      res.json(result)
-    })
-
-    //display doctors
-    app.get('/doctors', async (req, res) => {
-      const doctors = await doctorsCollection.find({}).toArray()
-      res.json(doctors)
-    })
-
+    
     //make admin
     app.put('/users/admin', verifyToken, async (req, res) => {
       const user = req.body;
@@ -123,6 +96,34 @@ async function run() {
         isAdmin = true;
       }
       res.json({ admin: isAdmin });
+    })
+
+
+    //add doctors
+    app.post('/doctors', async (req, res) => {
+      const name = req.body.name
+      const email = req.body.email
+      const mobile = req.body.mobile
+      const pic = req.files.image;
+
+      const picData = pic.data;
+      const encodedPic = picData.toString('base64')
+      const imageBuffer = Buffer.from(encodedPic, 'base64')
+
+      const doctor = {
+        name,
+        email,
+        mobile,
+        image: imageBuffer
+      }
+      const result = await doctorsCollection.insertOne(doctor)
+      res.json(result)
+    })
+
+    //display doctors
+    app.get('/doctors', async (req, res) => {
+      const doctors = await doctorsCollection.find({}).toArray()
+      res.json(doctors)
     })
 
     //add appoinments
