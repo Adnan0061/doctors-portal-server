@@ -117,7 +117,7 @@ async function run() {
     })
 
 
-    add doctors
+    // add doctors
     app.post('/doctors', async (req, res) => {
       const name = req.body.name
       const email = req.body.email
