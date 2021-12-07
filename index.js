@@ -69,25 +69,7 @@ async function run() {
     })
     
     //make admin
-    app.put('/users/admin', verifyToken, async (req, res) => {
-      const user = req.body;
-      const requester = req.decodedEmail;
-      if(requester){
-        const requesterAccount = await usersCollection.findOne({email: requester})
-        if(requesterAccount.role === 'admin'){
-          const filter = {email: user.email}
-          const updateDoc = { $set: {role: 'admin'}}
-          const result = await usersCollection.updateOne(filter, updateDoc)
-          res.json(result)
-        }
-        else{
-          res.status(401).json({message: 'you do not have access to make admin'})
-        }
-      }
-    })
-
-    //make admin
-    // app.put('/users/admin', async (req, res) => {
+    // app.put('/users/admin', verifyToken, async (req, res) => {
     //   const user = req.body;
     //   const requester = req.decodedEmail;
     //   if(requester){
@@ -103,6 +85,24 @@ async function run() {
     //     }
     //   }
     // })
+
+    //make admin
+    app.put('/users/admin', async (req, res) => {
+      const user = req.body;
+      const requester = req.decodedEmail;
+      if(requester){
+        const requesterAccount = await usersCollection.findOne({email: requester})
+        if(requesterAccount.role === 'admin'){
+          const filter = {email: user.email}
+          const updateDoc = { $set: {role: 'admin'}}
+          const result = await usersCollection.updateOne(filter, updateDoc)
+          res.json(result)
+        }
+        else{
+          res.status(401).json({message: 'you do not have access to make admin'})
+        }
+      }
+    })
 
     //check if admin
     app.get('/users/:email', async (req, res)=>{
@@ -165,16 +165,7 @@ async function run() {
     })
 
     // Load appoinments to show in dashboard
-    app.get('/appointments', verifyToken, async (req, res) => {
-      const email = req.query.idemail;
-      const date = req.query.date;
-      const query = {idemail : email, date: date}
-      const result = await appointmentsCollection.find(query).toArray()
-      res.json(result)
-    })
-
-    // Load appoinments to show in dashboard
-    // app.get('/appointments', async (req, res) => {
+    // app.get('/appointments', verifyToken, async (req, res) => {
     //   const email = req.query.idemail;
     //   const date = req.query.date;
     //   const query = {idemail : email, date: date}
@@ -182,21 +173,30 @@ async function run() {
     //   res.json(result)
     // })
 
-    //grt single 
-    app.get('/appointments/:id', verifyToken, async (req, res) => {
-      const id = req.params.id;
-      const query = {_id : ObjectId(id)}
-      const result = await appointmentsCollection.findOne(query)
+    // Load appoinments to show in dashboard
+    app.get('/appointments', async (req, res) => {
+      const email = req.query.idemail;
+      const date = req.query.date;
+      const query = {idemail : email, date: date}
+      const result = await appointmentsCollection.find(query).toArray()
       res.json(result)
     })
 
     //grt single 
-    // app.get('/appointments/:id', async (req, res) => {
+    // app.get('/appointments/:id', verifyToken, async (req, res) => {
     //   const id = req.params.id;
     //   const query = {_id : ObjectId(id)}
     //   const result = await appointmentsCollection.findOne(query)
     //   res.json(result)
     // })
+
+    //grt single 
+    app.get('/appointments/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = {_id : ObjectId(id)}
+      const result = await appointmentsCollection.findOne(query)
+      res.json(result)
+    })
 
     //stripe payment
     app.post("/create-payment-intent", async (req, res) => {
