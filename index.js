@@ -1,45 +1,48 @@
 const express = require('express')
 const app = express();
 const cors = require('cors');
-// let admin = require("firebase-admin");
+let admin = require("firebase-admin");
 require('dotenv').config()
 const { MongoClient } = require('mongodb');
 const ObjectId = require('mongodb').ObjectId;
 const stripe = require("stripe")(process.env.STRIPE_SECRET);
-// const fileUpload = require("express-fileUpload");
+const fileUpload = require("express-fileUpload");
 
 const port = process.env.PORT || 5000;
 
-// const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 
-// admin.initializeApp({
-//   credential: admin.credential.cert(serviceAccount)
-// });
+admin.initializeApp({
+  credential: admin.credential.cert({
+    project_id: process.env.FIREBASE_PROJECT_ID,
+    client_email: process.env.FIREBASE_CLIENT_EMAIL,
+    private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+  })
+});
 
 
 //middleware
 app.use(cors())
 app.use(express.json())
-// app.use(fileUpload())
+app.use(fileUpload())
 
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.70s8n.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
-// async function verifyToken(req, res, next) {
-//   if(req.headers?.authorization?.startsWith('Bearer ')){
-//     const token = req.headers.authorization.split(' ')[1]
+async function verifyToken(req, res, next) {
+  if(req.headers?.authorization?.startsWith('Bearer ')){
+    const token = req.headers.authorization.split(' ')[1]
     
-//     try {
-//       const decodedUser = await admin.auth().verifyIdToken(token);
-//       req.decodedEmail = decodedUser.email;
-//     }
-//     catch{
+    try {
+      const decodedUser = await admin.auth().verifyIdToken(token);
+      req.decodedEmail = decodedUser.email;
+    }
+    catch{
 
-//     }
-//   }
-//   next();
-// }
+    }
+  }
+  next();
+}
 
 async function run() {
   try {
@@ -69,25 +72,7 @@ async function run() {
     })
     
     //make admin
-    // app.put('/users/admin', verifyToken, async (req, res) => {
-    //   const user = req.body;
-    //   const requester = req.decodedEmail;
-    //   if(requester){
-    //     const requesterAccount = await usersCollection.findOne({email: requester})
-    //     if(requesterAccount.role === 'admin'){
-    //       const filter = {email: user.email}
-    //       const updateDoc = { $set: {role: 'admin'}}
-    //       const result = await usersCollection.updateOne(filter, updateDoc)
-    //       res.json(result)
-    //     }
-    //     else{
-    //       res.status(401).json({message: 'you do not have access to make admin'})
-    //     }
-    //   }
-    // })
-
-    //make admin
-    app.put('/users/admin', async (req, res) => {
+    app.put('/users/admin', verifyToken, async (req, res) => {
       const user = req.body;
       const requester = req.decodedEmail;
       if(requester){
@@ -103,6 +88,24 @@ async function run() {
         }
       }
     })
+
+    //make admin
+    // app.put('/users/admin', async (req, res) => {
+    //   const user = req.body;
+    //   const requester = req.decodedEmail;
+    //   if(requester){
+    //     const requesterAccount = await usersCollection.findOne({email: requester})
+    //     if(requesterAccount.role === 'admin'){
+    //       const filter = {email: user.email}
+    //       const updateDoc = { $set: {role: 'admin'}}
+    //       const result = await usersCollection.updateOne(filter, updateDoc)
+    //       res.json(result)
+    //     }
+    //     else{
+    //       res.status(401).json({message: 'you do not have access to make admin'})
+    //     }
+    //   }
+    // })
 
     //check if admin
     app.get('/users/:email', async (req, res)=>{
@@ -165,16 +168,7 @@ async function run() {
     })
 
     // Load appoinments to show in dashboard
-    // app.get('/appointments', verifyToken, async (req, res) => {
-    //   const email = req.query.idemail;
-    //   const date = req.query.date;
-    //   const query = {idemail : email, date: date}
-    //   const result = await appointmentsCollection.find(query).toArray()
-    //   res.json(result)
-    // })
-
-    // Load appoinments to show in dashboard
-    app.get('/appointments', async (req, res) => {
+    app.get('/appointments', verifyToken, async (req, res) => {
       const email = req.query.idemail;
       const date = req.query.date;
       const query = {idemail : email, date: date}
@@ -182,21 +176,31 @@ async function run() {
       res.json(result)
     })
 
-    //grt single 
-    // app.get('/appointments/:id', verifyToken, async (req, res) => {
-    //   const id = req.params.id;
-    //   const query = {_id : ObjectId(id)}
-    //   const result = await appointmentsCollection.findOne(query)
+    // Load appoinments to show in dashboard
+    // app.get('/appointments', async (req, res) => {
+    //   const email = req.query.idemail;
+    //   const date = req.query.date;
+    //   const query = {idemail : email, date: date}
+    //   const result = await appointmentsCollection.find(query).toArray()
     //   res.json(result)
     // })
 
+
     //grt single 
-    app.get('/appointments/:id', async (req, res) => {
+    app.get('/appointments/:id', verifyToken, async (req, res) => {
       const id = req.params.id;
       const query = {_id : ObjectId(id)}
       const result = await appointmentsCollection.findOne(query)
       res.json(result)
     })
+
+    //grt single 
+    // app.get('/appointments/:id', async (req, res) => {
+    //   const id = req.params.id;
+    //   const query = {_id : ObjectId(id)}
+    //   const result = await appointmentsCollection.findOne(query)
+    //   res.json(result)
+    // })
 
     //stripe payment
     app.post("/create-payment-intent", async (req, res) => {
