@@ -93,9 +93,10 @@ async function run() {
     //make admin
     app.put('/users/admin', async (req, res) => {
       const user = req.body;
-      const requester = req.decodedEmail;
-      if(requester){
-        const requesterAccount = await usersCollection.findOne({email: requester})
+      const email = user.email;
+      // const requester = req.decodedEmail;
+      // if(requester){
+        const requesterAccount = await usersCollection.findOne({email: email})
         if(requesterAccount.role === 'admin'){
           const filter = {email: user.email}
           const updateDoc = { $set: {role: 'admin'}}
@@ -105,7 +106,7 @@ async function run() {
         else{
           res.status(401).json({message: 'you do not have access to make admin'})
         }
-      }
+      // }
     })
 
     //check if admin
